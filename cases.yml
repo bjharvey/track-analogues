@@ -1,0 +1,116 @@
+# Details of cases examined
+# Get trackids from running locate_tracks.ipynb
+
+# Farrell's UK cases
+Arwen:
+  date: 2021-11-27 00:00:00
+  trackid: 456
+  trackvar: vor850
+
+GreatStorm:
+  date: 1987-10-16 00:00:00
+  trackid: 230
+  trackvar: vor850
+
+Martin:
+  date: 1999-12-28 00:00:00
+  trackid: 647
+  trackvar: vor850
+
+Ophelia:
+  date: 2017-10-17 00:00:00
+  trackid: 230
+  trackvar: vor850
+
+Eunice:
+  date: 2022-02-18 00:00:00
+  trackid: 884
+  trackvar: vor850
+
+NorthSea:
+  date: 1953-02-01 00:00:00
+  trackid: 796
+  trackvar: vor850
+
+
+# Cut-off lows
+Jul2021:
+  date: 2021-07-12 00:00:00
+  trackid: 749
+  trackvar: vor250
+
+Jul2012:
+  date: 2012-07-06 00:00:00
+  trackid: 699
+  trackvar: vor250
+
+
+# DRWs
+Oct2017jr:
+  date: 2017-10-22 00:00:00
+  trackid: 187
+  trackvar: vor250
+
+Ciaran:
+  date: 2023-11-02 00:00:00
+  trackid: 293
+  trackvar: vor850
+
+
+# Med Cyclones
+Daniel:
+  date: 2023-09-11 00:00:00
+  trackid: 894
+  trackvar: vor850
+
+Apollo:
+  date: 2021-10-29 12:00:00
+  trackid: 334
+  trackvar: vor850
+
+Ianos:
+  date: 2020-09-17 00:00:00
+  trackid: 1056
+  trackvar: vor850
+
+# No track found
+# Detlef:
+#   date: 2019-11-11 00:00:00
+#   trackid:
+
+Vaia:
+  date: 2018-10-29 12:00:00
+  trackid: 313
+  trackvar: vor850
+
+Julia:
+  date: 2012-02-06 12:00:00
+  trackid: 808
+  trackvar: vor850
+
+Andrea:
+  date: 2012-01-06 00:00:00
+  trackid: 625
+  trackvar: vor850
+
+
+# For Ed
+Groundhog:
+  date: 1976-02-02 00:00:00
+  trackid: 769
+  trackvar: vor850
+
+Franklin:
+  date: 2023-09-01 00:00:00
+  trackid: 811
+  trackvar: vor850
+
+Capella:
+  date: 1976-01-03 00:00:00
+  trackid: 626
+  trackvar: vor850
+
+DDay:
+  date: 1944-06-05 00:00:00
+  trackid: 414
+  trackvar: vor850

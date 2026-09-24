@@ -1,0 +1,16 @@
+# Generated output
+logs/
+data
+plots
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editor/OS files
+.DS_Store
+*.swp
+

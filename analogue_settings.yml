@@ -1,0 +1,76 @@
+# Farrell's settings
+vn1:
+  seg_len_before: 4
+  seg_len_after: 0
+  selection_time: max_RV
+  candidate_distance: 300.0
+  analogue_distance: 500.0
+  analogue_function: mean
+  filter_mslp: null
+  filter_rv: 4
+
+vn1-300:
+  seg_len_before: 4
+  seg_len_after: 0
+  selection_time: max_RV
+  candidate_distance: 300.0
+  analogue_distance: 300.0
+  analogue_function: mean
+  filter_mslp: null
+  filter_rv: 4
+
+
+# Testing settings for DRWs
+drws:
+  seg_len_before: 6
+  seg_len_after: 2
+  selection_time: max_RV
+  candidate_distance: 300.0
+  analogue_distance: 500.0
+  analogue_function: max
+  filter_mslp: null
+  filter_rv: 4
+
+
+# Testing settings for COLs
+cols:
+  seg_len_before: 2
+  seg_len_after: 10
+  selection_time: max_RV
+  candidate_distance: 300.0
+  analogue_distance: 400.0
+  analogue_function: max
+  filter_mslp: null
+  filter_rv: null
+
+
+# Med Cyclones settings
+med1:
+  seg_len_before: 3
+  seg_len_after: 3
+  selection_time: max_RV
+  candidate_distance: 200.0
+  analogue_distance: 300.0
+  analogue_function: max
+  filter_mslp: null
+  filter_rv: null
+
+medvaia:
+  seg_len_before: 3
+  seg_len_after: 0
+  selection_time: max_RV
+  candidate_distance: 250.0
+  analogue_distance: 250.0
+  analogue_function: max
+  filter_mslp: null
+  filter_rv: null
+
+meddaniel:
+  seg_len_before: 2
+  seg_len_after: 8
+  selection_time: max_RV
+  candidate_distance: 250.0
+  analogue_distance: 250.0
+  analogue_function: max
+  filter_mslp: null
+  filter_rv: null
