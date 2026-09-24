@@ -49,8 +49,8 @@ med1:
   seg_len_before: 3
   seg_len_after: 3
   selection_time: max_RV
-  candidate_distance: 200.0
-  analogue_distance: 300.0
+  candidate_distance: 250.0
+  analogue_distance: 250.0
   analogue_function: max
   filter_mslp: null
   filter_rv: null
@@ -65,9 +65,19 @@ medvaia:
   filter_mslp: null
   filter_rv: null
 
+medianos:
+  seg_len_before: 5
+  seg_len_after: 5
+  selection_time: max_RV
+  candidate_distance: 250.0
+  analogue_distance: 250.0
+  analogue_function: max
+  filter_mslp: null
+  filter_rv: null
+
 meddaniel:
-  seg_len_before: 2
-  seg_len_after: 8
+  seg_len_before: 0
+  seg_len_after: 12
   selection_time: max_RV
   candidate_distance: 250.0
   analogue_distance: 250.0

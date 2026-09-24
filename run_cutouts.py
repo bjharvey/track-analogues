@@ -4,15 +4,11 @@ import datetime
 import glob
 import warnings
 import numpy as np
-import cftime
 import iris
 import iris.cube
-import iris.plot as iplt
 import iris.coord_systems as cs
-import pandas as pd
 
 from track_utils import \
-    plot_tracks, \
     _get_track_segment, \
     load_single_era5_track, \
     decode_360_time
@@ -20,7 +16,8 @@ from run_analogues import \
     reload_analogues, \
     settings, \
     cases, \
-    output_dir
+    output_dir, \
+    rm_file
 
 
 def _get_le_info_from_track_filename(fn):
@@ -82,19 +79,32 @@ def load_track_le_variable(trackid, track, ftag, constraint=None, offsethrs=0):
 def load_track_le_cutouts(trackid, track, lonrange, latrange):
     """Load a set of global met variables for all times in a track"""
     # Get lons and lats for this track
-    mslp = load_track_le_variable(trackid, track, '6hr_m01s16i222', offsethrs=3).\
-        intersection(longitude=lonrange, latitude=latrange)
+    mslp = load_track_le_variable(
+        trackid,
+        track,
+        '6hr_m01s16i222',
+        offsethrs=3
+    ).intersection(longitude=lonrange, latitude=latrange)
     mslp.convert_units('hPa')
-    u = load_track_le_variable(trackid, track, '6hr_pt_m01s30i201').\
-        intersection(longitude=lonrange, latitude=latrange)
-    v = load_track_le_variable(trackid, track, '6hr_pt_m01s30i202').\
-        intersection(longitude=lonrange, latitude=latrange)
+    u = load_track_le_variable(
+        trackid,
+        track,
+        '6hr_pt_m01s30i201'
+    ).intersection(longitude=lonrange, latitude=latrange)
+    v = load_track_le_variable(
+        trackid,
+        track,
+        '6hr_pt_m01s30i202'
+    ).intersection(longitude=lonrange, latitude=latrange)
     pcon850 = iris.Constraint(air_pressure=850)
     wsp850 = ((u.extract(pcon850)**2 + v.extract(pcon850)**2)**0.5)
     wsp850.rename('wind_speed')
-    density = iris.cube.Cube(1e3, units='kg m-3')
-    pr = load_track_le_variable(trackid, track, '1hr_m01s05i216', offsethrs=0.5).\
-        intersection(longitude=lonrange, latitude=latrange)
+    pr = load_track_le_variable(
+        trackid,
+        track,
+        '1hr_m01s05i216',
+        offsethrs=0.5
+    ).intersection(longitude=lonrange, latitude=latrange)
     pr2 = pr.copy()
     pr2.data *= 3600.
     pr2.units = 'mm hr-1'
@@ -155,11 +165,8 @@ def shift_cube_time_by_years(cube, n_years):
 
 def run_cutouts(case, label, setting):
     print('RUN_CUTOUTS:', case, label, setting)
-    savefn_cutouts = output_dir / f'{case}/{label}_{case}_cutouts_{setting}.nc'
-    def rm_file(filepath):
-        if filepath.is_file():
-            print(f'RUN_COUTOUTS: Removing existing file\n{filepath}') 
-            filepath.unlink()
+    data_dir = output_dir / 'data' / f'{case}'
+    savefn_cutouts = data_dir / f'{label}_{case}_cutouts_{setting}.nc'
     rm_file(savefn_cutouts)
 
     target_track = load_single_era5_track(
@@ -195,7 +202,7 @@ def run_cutouts(case, label, setting):
             cube.add_aux_coord(tracklat, cube.coord_dims('time')[0])
             mem = int(cube.attributes['realization_index'])
             shift_cube_time_by_years(cube, 200 * mem)
-        cubes.extend(cubes0)        
+        cubes.extend(cubes0)
     iris.util.equalise_attributes(cubes)
     iris.util.unify_time_units(cubes)
     cubes = cubes.concatenate()
@@ -213,13 +220,23 @@ def reload_cutouts(case, label, setting):
     Returns: cubelist
 
     Note: track_longitude and track_latitude need help reloading properly.
-    This is because they are aux coords to the time dimension, but the different
-    variables have different time coord metadata. On save, theit relation to the
-    time coordinates is lost.
+    This is because they are aux coords to the time dimension, but the
+    different variables have different time coord metadata. On save, the
+    relation to the time coordinates is lost.
     """
-    savefn = output_dir.glob(f'{case}/{label}_{case}_cutouts_{setting}.nc')
-    print(f'Loading files: {savefn}')
-    cubes = iris.load(savefn)
+    # Load all available cutout files for this case/label/setting
+    data_dir = output_dir / 'data' / f'{case}'
+    savefn_cutouts = list(data_dir.glob(f'{label}_{case}_cutouts_{setting}.nc'))
+    print(f'\nRELOAD_CUTOUTS({case}, {label}, {setting}): '
+          f'Found {len(savefn_cutouts)} files')
+    cubes = iris.load(savefn_cutouts)
+    if len(cubes) == 0:
+        print(f'RELOAD_CUTOUTS: No cubes found, exiting...')
+        return None
+
+    # Massage and concatenate
+    # (including reinastating time dimension if needed
+    #  i.e. if only one time then can be flattened to a scalar)
     for cube in cubes:
         cube.var_name = None
         cube.coord('time').var_name = None
@@ -233,15 +250,24 @@ def reload_cutouts(case, label, setting):
     cubes = new_cubes.concatenate()
     iris.util.unify_time_units(cubes)
     iris.util.equalise_attributes(cubes)
-    # Put track_longitude and track_latitude back into cubes they're missing from
-    # First find it (always the first cube?)
+    
+    # Put track_longitude and track_latitude aux coords back into
+    # cubes they're missing from
+    # First find it (they're always in the first cube?)
     track_longitude = cubes[0].coord('track_longitude')
     track_latitude = cubes[0].coord('track_latitude')
+    cubes = iris.cube.CubeList(
+        cube
+        for cube in cubes
+        if cube.name() not in ['track_longitude', 'track_latitude']
+    )
     for cube in cubes[1:]:
         if 'time' in [co.name() for co in cube.coords()]:
             print(f'RELOAD_CUTOUTS: Adding track_longitude and track_latitude to {cube.name()}')
             cube.add_aux_coord(track_longitude, cube.coord_dims('time'))
             cube.add_aux_coord(track_latitude, cube.coord_dims('time'))
+    
+    print(cubes)
     return cubes
 
 
