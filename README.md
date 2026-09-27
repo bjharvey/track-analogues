@@ -35,3 +35,8 @@ Edit `run_analogues.py` to set `output_dir` to where you want to save to.
 Access is required to these locations:
 * `/gws/ssde/j25b/cmip6_track/CANARI` for the ERA5 and CANARI-LE track files
 * `/gws/ssde/j25b/canari/shared/large-ensemble/priority` for the large ensemble priority outputs
+
+## Issues to fix
+
+* (Sep 2026): Kevin updated calendar information in all CANARI nc track files (now 'days as YYYYMMDD.X' for both ERA5 (gregorian) and HIST/SSP370 (360_day)). Have modified code to match this. Note the track Datasets hold these values rather than datetime/cftime.Datetime360Day objects because doing so slowed things down a lot. Need to bear in mind when using date information!
+* (Sep 2026): Using latest Jupyter notebooks kernel (jaspy3.12...-v2026...) led to concatenation errors in reload_cutouts. Need to investigate. For now, using the older jaspy3.12...-v2025... seems to work ok.

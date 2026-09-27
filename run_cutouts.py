@@ -11,7 +11,7 @@ import iris.coord_systems as cs
 from track_utils import \
     _get_track_segment, \
     load_single_era5_track, \
-    decode_360_time
+    decode_kevins_date
 from run_analogues import \
     reload_analogues, \
     settings, \
@@ -42,7 +42,7 @@ def load_track_le_variable(trackid, track, ftag, constraint=None, offsethrs=0):
     print(f'LOAD_TRACK_LE_DATA: Loading {ftag} for track {trackid}')
     priority_dir = '/gws/ssde/j25b/canari/shared/large-ensemble/priority'
     exp, suiteid, mem = _get_le_info_from_track_filename(trackid)
-    track_times = [decode_360_time(value) for value in track['time'].values]
+    track_times = [decode_kevins_date(value, track['time'].time_calendar.strip()) for value in track['time'].values]
     years_needed = np.unique([t.year for t in track_times])
     print(f'LOAD_TRACK_LE_DATA: {exp}, {suiteid}, {mem}, {years_needed}')
 
@@ -86,19 +86,35 @@ def load_track_le_cutouts(trackid, track, lonrange, latrange):
         offsethrs=3
     ).intersection(longitude=lonrange, latitude=latrange)
     mslp.convert_units('hPa')
+    pcon = iris.Constraint(air_pressure=850)
     u = load_track_le_variable(
         trackid,
         track,
         '6hr_pt_m01s30i201'
-    ).intersection(longitude=lonrange, latitude=latrange)
+    ).intersection(longitude=lonrange, latitude=latrange).extract(pcon)
     v = load_track_le_variable(
         trackid,
         track,
         '6hr_pt_m01s30i202'
-    ).intersection(longitude=lonrange, latitude=latrange)
-    pcon850 = iris.Constraint(air_pressure=850)
-    wsp850 = ((u.extract(pcon850)**2 + v.extract(pcon850)**2)**0.5)
-    wsp850.rename('wind_speed')
+    ).intersection(longitude=lonrange, latitude=latrange).extract(pcon)
+    t = load_track_le_variable(
+        trackid,
+        track,
+        '6hr_pt_m01s30i204'
+    ).intersection(longitude=lonrange, latitude=latrange).extract(pcon)
+    q = load_track_le_variable(
+        trackid,
+        track,
+        '6hr_pt_m01s30i205'
+    ).intersection(longitude=lonrange, latitude=latrange).extract(pcon)
+    z = load_track_le_variable(
+        trackid,
+        track,
+        '6hr_pt_m01s30i207'
+    ).intersection(longitude=lonrange, latitude=latrange).extract(pcon)
+    wsp = (u**2 + v**2)**0.5
+    wsp.rename('wind_speed')
+    # To do: add other variables, e.g. 6hr_pt_m01s30i20[12457] and use all pressure levels
     pr = load_track_le_variable(
         trackid,
         track,
@@ -108,7 +124,7 @@ def load_track_le_cutouts(trackid, track, lonrange, latrange):
     pr2 = pr.copy()
     pr2.data *= 3600.
     pr2.units = 'mm hr-1'
-    return [mslp, wsp850, pr2]
+    return [mslp, wsp, pr2, t]
 
 
 def shift_cube_time_by_years(cube, n_years):
@@ -174,7 +190,7 @@ def run_cutouts(case, label, setting):
         cases[case]['trackid'],
         trackvar=cases[case]['trackvar']
     )
-    target_point = _get_track_segment(target_track, 0, 0, settings[setting]['selection_time'])
+    target_point = _get_track_segment(target_track, 0, 0, selection_time=settings[setting]['selection_time'])
     lon = target_point['longitude'].values[0]
     lat = target_point['latitude'].values[0]
     lonrange = [lon - 30, lon + 30]
@@ -187,19 +203,27 @@ def run_cutouts(case, label, setting):
     tracks = tracks[label]
     cubes = iris.cube.CubeList()
     for trackid, track in tracks.items():
-        point = _get_track_segment(track, 0, 0, settings[setting]['selection_time'])
+        point = _get_track_segment(track, 0, 0, relative_index=True)
         cubes0 = load_track_le_cutouts(trackid, point, lonrange, latrange)
         for cube in cubes0:
-            tracklon = iris.coords.AuxCoord(
+            tracklonc = iris.coords.AuxCoord(
                 point['longitude'].values[0],
                 long_name='track_longitude'
             )
-            tracklat = iris.coords.AuxCoord(
+            tracklatc = iris.coords.AuxCoord(
                 point['latitude'].values[0],
                 long_name='track_latitude'
             )
-            cube.add_aux_coord(tracklon, cube.coord_dims('time')[0])
-            cube.add_aux_coord(tracklat, cube.coord_dims('time')[0])
+            # For track_id, specify string length to ensure common accross
+            # files (by default is length of longest string).
+            # 180 characters seems ok.
+            trackidc = iris.coords.AuxCoord(
+                np.array(trackid, dtype='U180'),
+                long_name='track_id'
+            )
+            cube.add_aux_coord(tracklonc, cube.coord_dims('time')[0])
+            cube.add_aux_coord(tracklatc, cube.coord_dims('time')[0])
+            cube.add_aux_coord(trackidc, cube.coord_dims('time')[0])
             mem = int(cube.attributes['realization_index'])
             shift_cube_time_by_years(cube, 200 * mem)
         cubes.extend(cubes0)
@@ -228,7 +252,7 @@ def reload_cutouts(case, label, setting):
     data_dir = output_dir / 'data' / f'{case}'
     savefn_cutouts = list(data_dir.glob(f'{label}_{case}_cutouts_{setting}.nc'))
     print(f'\nRELOAD_CUTOUTS({case}, {label}, {setting}): '
-          f'Found {len(savefn_cutouts)} files')
+          f'Found {len(savefn_cutouts)} files')    
     cubes = iris.load(savefn_cutouts)
     if len(cubes) == 0:
         print(f'RELOAD_CUTOUTS: No cubes found, exiting...')
@@ -245,28 +269,26 @@ def reload_cutouts(case, label, setting):
         iris.util.new_axis(cube, 'time')
         if not cube.coords('time', dim_coords=True)
         else cube
-        for cube in cubes
+        for cube in [cube for cube in cubes
+            if cube.name() not in ['track_longitude', 'track_latitude', 'track_id']]
         )
+    iris.util.unify_time_units(new_cubes)
+    iris.util.equalise_attributes(new_cubes)
     cubes = new_cubes.concatenate()
-    iris.util.unify_time_units(cubes)
-    iris.util.equalise_attributes(cubes)
-    
-    # Put track_longitude and track_latitude aux coords back into
+    print(cubes)
+
+    # Put track_longitude, track_latitude and track_id aux coords back into
     # cubes they're missing from
     # First find it (they're always in the first cube?)
     track_longitude = cubes[0].coord('track_longitude')
     track_latitude = cubes[0].coord('track_latitude')
-    cubes = iris.cube.CubeList(
-        cube
-        for cube in cubes
-        if cube.name() not in ['track_longitude', 'track_latitude']
-    )
+    track_id = cubes[0].coord('track_id')
     for cube in cubes[1:]:
         if 'time' in [co.name() for co in cube.coords()]:
-            print(f'RELOAD_CUTOUTS: Adding track_longitude and track_latitude to {cube.name()}')
+            print(f'RELOAD_CUTOUTS: Adding track_longitude, track_latitude and track_id to {cube.name()}')
             cube.add_aux_coord(track_longitude, cube.coord_dims('time'))
             cube.add_aux_coord(track_latitude, cube.coord_dims('time'))
-    
+            cube.add_aux_coord(track_id, cube.coord_dims('time'))
     print(cubes)
     return cubes
 

@@ -16,13 +16,13 @@
 # CASES=(Jul2021 Jul2012)
 # SETTINGS=cols
 
-# CASES=(Oct2017jr Ciaran)
-# SETTINGS=drws
+CASES=(Christian Ciaran)
+SETTINGS=drws
 
 # CASES=(Daniel Apollo Ianos Andrea Julia Vaia)
 # SETTINGS=med1
-CASES=(Vaia Ianos Daniel)
-SETTINGS=(medvaia medianos meddaniel)
+# CASES=(Vaia Ianos Daniel)
+# SETTINGS=(medvaia medianos meddaniel)
 
 # CASES=(Groundhog Franklin Capella DDay)
 # SETTINGS=drws

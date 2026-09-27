@@ -16,13 +16,13 @@
 # CASES=(Jul2021 Jul2012)
 # SETTINGS=cols
 
-# CASES=(Oct2017jr Ciaran)
-# SETTINGS=drws
+CASES=(Christian Ciaran)
+SETTINGS=drws
 
 # CASES=(Daniel Apollo Ianos Andrea Julia Vaia)
 # SETTINGS=med1
-CASES=(Vaia Ianos Daniel)
-SETTINGS=(medvaia medianos meddaniel)
+# CASES=(Vaia Ianos Daniel)
+# SETTINGS=(medvaia medianos meddaniel)
 
 # CASES=(Groundhog Franklin Capella DDay)
 # SETTINGS=drws
@@ -46,7 +46,7 @@ fi
 
 for i in "${!CASES[@]}"; do
     CASE="${CASES[$i]}"
-    SETTINGS="${SETTINGS[$i]}"
+    SETTING="${SETTINGS[$i]}"
     jobname=rc-hist_${CASE}_${SETTING}
     echo Submitting $jobname
     sbatch --job-name="$jobname" run_cutouts_submit-hist.sh $CASE $SETTING

@@ -96,10 +96,10 @@ def reload_analogues(case, label, setting, get_candidates=False):
         savefn = data_dir.glob(f'{label}_{case}_candidates_{setting}.nc')
     else:
         savefn = data_dir.glob(f'{label}_{case}_analogues_{setting}.nc')
-    tracks = {fn.name.split('_')[0]: load_tracks(fn) for fn in savefn}
+    tracks = {fn.name.split('_')[0]: load_tracks(fn, verbose=False) for fn in savefn}
     nfiles = len(tracks)
     ntracks = sum([len(v) for k, v in tracks.items()])
-    print(f'RELOAD_ANALOGUES({case}, {label}, {setting}, '
+    print(f'\nRELOAD_ANALOGUES({case}, {label}, {setting}, '
           f'{'candidates' if get_candidates else 'analogues'}): '
           f'Loaded {nfiles} files, {ntracks} tracks')
     return tracks

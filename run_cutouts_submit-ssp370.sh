@@ -4,7 +4,7 @@
 #SBATCH --account=canari
 #SBATCH --partition=standard
 #SBATCH --qos=short
-#SBATCH --time=10:00
+#SBATCH --time=20:00
 #SBATCH --array=1-40  # nmems
 
 # Load necessary modules

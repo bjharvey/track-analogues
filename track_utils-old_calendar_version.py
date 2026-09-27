@@ -1,4 +1,6 @@
 """
+(version before updating to new calendar information in CANARI track files, Sep 2026)
+
 Useful track functions shared across notebooks.
 
 Approach used: Load Kevin's netcdf track files into an xarray data set
@@ -23,7 +25,7 @@ def wrap_lons(lon_array):
     return ((lon_array + 180) % 360) - 180
 
 
-def decode_kevins_date(value, calendar):
+def decode_360_time(value):
     """
     Convert a number in YYYYMMDD.X with X decimal fraction of day
     invert a cftime.Datetime360Day object.
@@ -34,20 +36,10 @@ def decode_kevins_date(value, calendar):
     month = (date % 10000) // 100
     day = date % 100
     hour = round(fraction * 24)
-    if calendar == '360_day':
-        return cftime.Datetime360Day(year, month, day, hour)
-    else:
-        return cftime.DatetimeGregorian(year, month, day, hour)
+    return cftime.Datetime360Day(year, month, day, hour)
 
 
-def dec_time_from_dt(dt):
-    """
-    Convert to YYYYMMDD.X format.
-    """
-    return dt.year * 10000 + dt.month * 100 + dt.day + dt.hour / 24
-
-
-def dec_time_from_ymdh(year, month, day, hour=0):
+def encode_360_time(year, month, day, hour=0):
     """
     Convert to YYYYMMDD.X format.
     """
@@ -85,45 +77,24 @@ def _get_lonslats(track):
     return wrap_lons(track['longitude'].values), track['latitude'].values
 
 
-def _get_maxint_idx(track, selection_time):
-    """
-    Get index of max intensity time (will fail if all NaNs).
-    
-    track (xarray.Dataset): The track
-    selection_time (str)  : Choice of max intensity definition ('max_RV' or 'min_MSLP')
-    """
-    if selection_time == "min_MSLP":
-        idx = int(np.nanargmin(track["air_pressure_at_sea_level"].values))
-    elif selection_time == "max_RV":
-        idx = int(np.nanargmax(track["relative_vorticity"].values))
-    return idx
-    
-    
-def _get_track_segment(track, seg_len_before, seg_len_after,
-                       relative_index=False, selection_time=None, central_idx=None,
+def _get_track_segment(track, seg_len_before, seg_len_after, selection_time,
                        **kwargs):
     """
-    Extract a segment of track surrounding either time of max
-    intensity (if selection_time is set) or another given index
-    (if central_idx is set).
+    Extract the segment of a track surrounding the time of max intensity.
 
     track (xarray.Dataset): The track
     seg_len_before (int)  : Number of timesteps before max intensity to include
     seg_len_after (int)   : Number of timesteps after max intensity to include
-    selection_time (str)  : Choice of max intensity passed to _get_maxint_idx
-    central_idx (int)     : 
+    selection_time (str)  : Choice of max intensity ('max_RV' or 'min_MSLP')
     kwargs                : Not used (allows passing of settings dict)
 
     Raises ValueError if insufficient points before/after max intensity.
     """
-    # Get index of max intensity time
-    if relative_index:
-        idx = np.where(track["relative_index"].values == 0)[0][0]
-    elif selection_time is not None:
-        idx = _get_maxint_idx(track, selection_time)
-    elif central_idx is not None:
-        idx = central_idx
-
+    # Get id of target time (will fail if all NaNs)
+    if selection_time == "min_MSLP":
+        idx = int(np.nanargmin(track["air_pressure_at_sea_level"].values))
+    elif selection_time == "max_RV":
+        idx = int(np.nanargmax(track["relative_vorticity"].values))
     # Check against seg_lens
     if idx < seg_len_before:
         raise ValueError(f"Need at least {seg_len_before} "
@@ -159,10 +130,11 @@ def load_tracks(
                          as a quick way of avoiding duplpicate keys when
                          combining multiple files.
 
-    Note (Sep 2026): The calendar info in the CANARI track nc files has been
-    updated to changed (were both gregorian with time values loaded as np.datetime64):
-        Now both have values as YYYYMMDD.X with X decimal fraction of day
-        (not cf-compliant though?)
+    Note (Sep 2026): The CANARI track nc files have been updated to
+    have better calendar information:
+        ERA5 is gregorian and time values loaded as np.datetime64
+        CANARI is 360_day and time values loaded as YYYYMMDD.X with X
+            decimal fraction of day (not cf-compliant though?)
     """
     if verbose:
         print(f'LOAD_TRACKS: Loading file {filename}')
@@ -174,14 +146,25 @@ def load_tracks(
         # Assume filename contains one of
         #   mar-octYYYY --> subset to tracks with max in apr-sepYYYY
         #   sep-aprYYYYZZZZ -> subset to tracks with max in octYYYY-marZZZZ
+        # Note: Need to handle ERA5 and CANARI differently due to different
+        # calendars
+        calendar = ds.time.time_calendar.strip()
         if 'mar-oct' in str(filename):
             year = int(str(filename).split('mar-oct')[1][:4])
-            daterange = [dec_time_from_ymdh(year,  4, 1),
-                         dec_time_from_ymdh(year, 10, 1)]
+            if calendar == 'gregorian':
+                daterange = [np.datetime64(datetime.datetime(year,  4, 1)),
+                             np.datetime64(datetime.datetime(year, 10, 1))]
+            elif calendar == '360_day':
+                daterange = [encode_360_time(year,  4, 1),
+                             encode_360_time(year, 10, 1)]
         elif 'sep-apr' in str(filename):
             year = int(str(filename).split('sep-apr')[1][:4])
-            daterange = [dec_time_from_ymdh(year,  10, 1),
-                         dec_time_from_ymdh(year+1, 4, 1)]
+            if calendar == 'gregorian':
+                daterange = [np.datetime64(datetime.datetime(year,  10, 1)),
+                             np.datetime64(datetime.datetime(year+1, 4, 1))]
+            elif calendar == '360_day':
+                daterange = [encode_360_time(year,  10, 1),
+                             encode_360_time(year+1, 4, 1)]
         else:
             raise ValueError('Cannot extract daterange from file:', filename)
         if verbose:
@@ -341,9 +324,9 @@ def plot_timeseries(
 
         for track_id, track in tracks.items():
 
-            segment = _get_track_segment(track, relative_index=True, **settings)
+            segment = _get_track_segment(track, **settings)
             values = segment[varname].values
-            xpts = segment['relative_index'].values#(segment['time'] - segment['time'][settings['seg_len_before']]) / np.timedelta64(1, 'h')
+            xpts = (segment['time'] - segment['time'][settings['seg_len_before']]) / np.timedelta64(1, 'h')
 
             if plotstyle == 'lines':
                 ax.plot(
@@ -412,7 +395,6 @@ def find_analogues(
     tracks: dict[xr.Dataset],
     seg_len_before: int = 4,
     seg_len_after: int = 4,
-    max_max_intensity_offset: int = 0,
     selection_time: str = 'max_RV',
     candidate_distance: float = 300.0,
     analogue_distance: float = 500.0,
@@ -437,13 +419,11 @@ def find_analogues(
 
     # 1) Get coordinates of target track segment
     target_segment = _get_track_segment(
-        target_track, seg_len_before, seg_len_after, selection_time=selection_time
+        target_track, seg_len_before, seg_len_after, selection_time
     )
-    target_segment_lonslats = _get_lonslats(target_segment)
-    target_point_lonslats = tuple(arr[seg_len_before] for arr in target_segment_lonslats)
+    target_lonslats = _get_lonslats(target_segment)
     if verbose:
-        print(f'Target segment: {target_segment_lonslats}')
-        print(f'Target point: {target_point_lonslats}')
+        print(f'Target segment: {target_lonslats}')
 
     # 2) Filter to candidate and analogue tracks
     candidate_tracks = {}
@@ -452,40 +432,19 @@ def find_analogues(
         'segment_not_available': 0,
         'filter_mslp': 0,
         'filter_rv': 0,
-        'candidate_test1': 0,
-        'candidate_test2': 0,
+        'candidate_test': 0,
         'analogue_test': 0,
     }
     for track_id, track in tracks.items():
-
-        # Does the track pass within candidate_distance of target's max intensity point?
-        track_lonslats = _get_lonslats(track)
-        dists_to_point = haversine_np(*target_point_lonslats, *track_lonslats)
-        if np.nanmin(dists_to_point) > candidate_distance:
-            counts['candidate_test1'] += 1
-            continue
-
-        # Does the track reach max intensity within max_max_intensity_offset timesteps of passing this point?
-        passidx = np.nanargmin(dists_to_point)
-        maxidx = _get_maxint_idx(track, selection_time)
-        if np.abs(passidx - maxidx) > max_max_intensity_offset:
-            counts['candidate_test2'] += 1
-            continue
-        else:
-            # Add variable holding timesteps to passidx
-            track["relative_index"] = track["index"] - passidx
-            candidate_tracks[track_id] = track
-
-        # Is the segment from seg_len_before to seg_len_after available?
         try:
             segment = _get_track_segment(
-                track, seg_len_before, seg_len_after, central_idx=passidx
+                track, seg_len_before, seg_len_after, selection_time
             )
+            lonslats = _get_lonslats(segment)
         except ValueError:
             counts['segment_not_available'] += 1
             continue
 
-        # Does the segment meet any intensity filters?
         if filter_mslp:
             mslp_values = segment['air_pressure_at_mean_sea_level'].values
             if np.nanmin(mslp_values) > filter_mslp:
@@ -497,11 +456,15 @@ def find_analogues(
                 counts['filter_rv'] += 1
                 continue
 
-        # Is the segment close to the target segment?
+        dists = haversine_np(*target_lonslats, *lonslats)
+        if dists[seg_len_before] > candidate_distance:
+            counts['candidate_test'] += 1
+            continue
+        else:
+            candidate_tracks[track_id] = track
+
         func = {'mean': np.nanmean, 'max': np.nanmax}[analogue_function]
-        segment_lonslats = _get_lonslats(segment)
-        segment_dists = haversine_np(*target_segment_lonslats, *segment_lonslats)
-        if func(segment_dists) > analogue_distance:
+        if func(dists) > analogue_distance:
             counts['analogue_test'] += 1
             continue
         else:

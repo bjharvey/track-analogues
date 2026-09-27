@@ -2,6 +2,7 @@
 vn1:
   seg_len_before: 4
   seg_len_after: 0
+  max_max_intensity_offset : 0
   selection_time: max_RV
   candidate_distance: 300.0
   analogue_distance: 500.0
@@ -12,10 +13,11 @@ vn1:
 vn1-300:
   seg_len_before: 4
   seg_len_after: 0
+  max_max_intensity_offset : 2
   selection_time: max_RV
   candidate_distance: 300.0
   analogue_distance: 300.0
-  analogue_function: mean
+  analogue_function: max
   filter_mslp: null
   filter_rv: 4
 
@@ -24,9 +26,10 @@ vn1-300:
 drws:
   seg_len_before: 6
   seg_len_after: 2
+  max_max_intensity_offset : 2
   selection_time: max_RV
   candidate_distance: 300.0
-  analogue_distance: 500.0
+  analogue_distance: 300.0
   analogue_function: max
   filter_mslp: null
   filter_rv: 4
@@ -36,6 +39,7 @@ drws:
 cols:
   seg_len_before: 2
   seg_len_after: 10
+  max_max_intensity_offset : 2
   selection_time: max_RV
   candidate_distance: 300.0
   analogue_distance: 400.0
@@ -48,6 +52,7 @@ cols:
 med1:
   seg_len_before: 3
   seg_len_after: 3
+  max_max_intensity_offset : 2
   selection_time: max_RV
   candidate_distance: 250.0
   analogue_distance: 250.0
@@ -58,6 +63,7 @@ med1:
 medvaia:
   seg_len_before: 3
   seg_len_after: 0
+  max_max_intensity_offset : 0
   selection_time: max_RV
   candidate_distance: 250.0
   analogue_distance: 250.0
@@ -66,8 +72,9 @@ medvaia:
   filter_rv: null
 
 medianos:
-  seg_len_before: 5
-  seg_len_after: 5
+  seg_len_before: 4
+  seg_len_after: 4
+  max_max_intensity_offset : 2
   selection_time: max_RV
   candidate_distance: 250.0
   analogue_distance: 250.0
@@ -78,6 +85,7 @@ medianos:
 meddaniel:
   seg_len_before: 0
   seg_len_after: 12
+  max_max_intensity_offset : 12
   selection_time: max_RV
   candidate_distance: 250.0
   analogue_distance: 250.0
