@@ -5,7 +5,6 @@ Approach used: Load Kevin's netcdf track files into an xarray data set
 """
 
 import numpy as np
-import datetime
 import cftime
 import xarray as xr
 import matplotlib.pyplot as plt
@@ -42,14 +41,14 @@ def decode_kevins_date(value, calendar):
 
 def dec_time_from_dt(dt):
     """
-    Convert to YYYYMMDD.X format.
+    Convert datetime to YYYYMMDD.X format.
     """
     return dt.year * 10000 + dt.month * 100 + dt.day + dt.hour / 24
 
 
 def dec_time_from_ymdh(year, month, day, hour=0):
     """
-    Convert to YYYYMMDD.X format.
+    Convert year, month, day, hour to YYYYMMDD.X format.
     """
     return year * 10000 + month * 100 + day + hour / 24
 
@@ -88,7 +87,7 @@ def _get_lonslats(track):
 def _get_maxint_idx(track, selection_time):
     """
     Get index of max intensity time (will fail if all NaNs).
-    
+
     track (xarray.Dataset): The track
     selection_time (str)  : Choice of max intensity definition ('max_RV' or 'min_MSLP')
     """
@@ -97,21 +96,23 @@ def _get_maxint_idx(track, selection_time):
     elif selection_time == "max_RV":
         idx = int(np.nanargmax(track["relative_vorticity"].values))
     return idx
-    
-    
+
+
 def _get_track_segment(track, seg_len_before, seg_len_after,
                        relative_index=False, selection_time=None, central_idx=None,
                        **kwargs):
     """
-    Extract a segment of track surrounding either time of max
-    intensity (if selection_time is set) or another given index
-    (if central_idx is set).
+    Extract a segment of track surrounding idx, given by:
+        - If relative_index is True: the time when 'relative_index' is 0
+                                     (relative_index is added to tracks
+                                     by find_analogues)
+        - If selection_time is set: the time of max intensity
+                                    (selection_time then passed to _get_maxint_idx)
+        - If central_idx is set: the time corresponding to this index value
 
     track (xarray.Dataset): The track
-    seg_len_before (int)  : Number of timesteps before max intensity to include
-    seg_len_after (int)   : Number of timesteps after max intensity to include
-    selection_time (str)  : Choice of max intensity passed to _get_maxint_idx
-    central_idx (int)     : 
+    seg_len_before (int)  : Number of timesteps before idx to include
+    seg_len_after (int)   : Number of timesteps after idx to include
     kwargs                : Not used (allows passing of settings dict)
 
     Raises ValueError if insufficient points before/after max intensity.
@@ -204,7 +205,7 @@ def load_tracks(
     if verbose:
         print(f'LOAD_TRACKS: Found {len(tracks)} tracks')
         if counts['not_in_daterange']:
-            print(f'Omitted tracks: {counts}')
+            print(f'-- Omitted tracks: {counts}')
     ds.close()
     return tracks
 
@@ -343,7 +344,7 @@ def plot_timeseries(
 
             segment = _get_track_segment(track, relative_index=True, **settings)
             values = segment[varname].values
-            xpts = segment['relative_index'].values#(segment['time'] - segment['time'][settings['seg_len_before']]) / np.timedelta64(1, 'h')
+            xpts = segment['relative_index'].values
 
             if plotstyle == 'lines':
                 ax.plot(
@@ -397,7 +398,7 @@ def load_single_era5_track(dt, track_id, trackvar='vor850'):
     dt is the datetime (just used to locate correct file).
     """
     filename = make_era5_track_filename(dt, trackvar)
-    print(f'Loading file {filename}')
+    print(f'LOAD_SINGLE_ERA5_TRACK: Loading track {track_id} from {filename}')
     ds = xr.open_dataset(filename)
     return extract_track(ds, track_id)
 
@@ -428,22 +429,25 @@ def find_analogues(
     selection_time: Time to centre matching on ('max_RV' or 'min_MSLP')
     candidate_distance: Max candidate distance at selection_time.
     analogue_distance: Max analogue distance along track segment.
-    analogue_function: Define analogue distance as segemnt mean or segment max ('mean' or 'max')
+    analogue_function: Define analogue distance as segemnt mean or segment max
+                       ('mean' or 'max')
     filter_mslp/rv: Subset to tracks exceeding intensity threshold.
     """
     if verbose:
-        print('Running FIND_ANALOGUES')
-        print(f'Input tracks: {len(tracks)}')
+        print(f'FIND_ANALOGUES: {len(tracks)} input tracks')
 
     # 1) Get coordinates of target track segment
     target_segment = _get_track_segment(
-        target_track, seg_len_before, seg_len_after, selection_time=selection_time
+        target_track,
+        seg_len_before,
+        seg_len_after,
+        selection_time=selection_time,
     )
     target_segment_lonslats = _get_lonslats(target_segment)
     target_point_lonslats = tuple(arr[seg_len_before] for arr in target_segment_lonslats)
     if verbose:
-        print(f'Target segment: {target_segment_lonslats}')
-        print(f'Target point: {target_point_lonslats}')
+        print(f'-- Target segment: {target_segment_lonslats}')
+        print(f'-- Target point: {target_point_lonslats}')
 
     # 2) Filter to candidate and analogue tracks
     candidate_tracks = {}
@@ -458,28 +462,31 @@ def find_analogues(
     }
     for track_id, track in tracks.items():
 
-        # Does the track pass within candidate_distance of target's max intensity point?
+        # Does track pass within candidate_distance of target_point?
         track_lonslats = _get_lonslats(track)
         dists_to_point = haversine_np(*target_point_lonslats, *track_lonslats)
         if np.nanmin(dists_to_point) > candidate_distance:
             counts['candidate_test1'] += 1
             continue
 
-        # Does the track reach max intensity within max_max_intensity_offset timesteps of passing this point?
-        passidx = np.nanargmin(dists_to_point)
-        maxidx = _get_maxint_idx(track, selection_time)
-        if np.abs(passidx - maxidx) > max_max_intensity_offset:
+        # Does the track either: reach max intensity within candidate_distance of target_point 
+        # or else reach max intensity within max_max_intensity_offset timesteps of passing this point?
+        maxint_idx = _get_maxint_idx(track, selection_time)
+        dist_at_maxint = haversine_np(*target_point_lonslats, *tuple(arr[maxint_idx] for arr in track_lonslats))
+        pass_idx = np.nanargmin(dists_to_point)
+        if (dist_at_maxint > candidate_distance and 
+            np.abs(pass_idx - maxint_idx) > max_max_intensity_offset):
             counts['candidate_test2'] += 1
             continue
-        else:
-            # Add variable holding timesteps to passidx
-            track["relative_index"] = track["index"] - passidx
-            candidate_tracks[track_id] = track
 
-        # Is the segment from seg_len_before to seg_len_after available?
+        # Add variable holding timesteps to pass_idx
+        track["relative_index"] = track["index"] - pass_idx
+        candidate_tracks[track_id] = track
+
+        # Is segment from seg_len_before to seg_len_after pass_idx available?
         try:
             segment = _get_track_segment(
-                track, seg_len_before, seg_len_after, central_idx=passidx
+                track, seg_len_before, seg_len_after, central_idx=pass_idx
             )
         except ValueError:
             counts['segment_not_available'] += 1
@@ -505,11 +512,11 @@ def find_analogues(
             counts['analogue_test'] += 1
             continue
         else:
+            print('-- Analogue found: ', segment_lonslats)
             analogue_tracks[track_id] = track
 
     if verbose:
-        print(f'Found {len(candidate_tracks)} candidate tracks')
-        print(f'Found {len(analogue_tracks)} analogue tracks')
-        print(f'Filter counts: {counts}')
+        print(f'-- Found {len(candidate_tracks)} candidates, {len(analogue_tracks)} analogues')
+        print(f'-- Filter counts: {counts}')
 
     return candidate_tracks, analogue_tracks, counts

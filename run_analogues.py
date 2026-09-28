@@ -40,9 +40,9 @@ def compute_analogues(case, label, setting, flist):
     settings: a key of settings defining the inputs to find_analogues
     flist: list of netcdf track files to search in
     """
-    print(f'\nCOMPUTE_ANALOGUES: Finding analogues for storm '
-          f'{case} in dataset {label}')
-    print(cases[case])
+    print(f'\nCOMPUTE_ANALOGUES: {case}, {label}, {setting}')
+    print('Case: ', cases[case])
+    print('Settings: ', settings[setting])
 
     # Construct filenames and remove any existing analogue files
     data_dir = output_dir / 'data' / f'{case}'
@@ -61,6 +61,7 @@ def compute_analogues(case, label, setting, flist):
     # Loop over files and search for candidates and analogues in each
     candidate_tracks = {}
     analogue_tracks = {}
+    print(f'\nCOMPUTE_ANALOGUES: Looping over files...')
     for filename in flist:
         tracks = load_tracks(
             filename,

@@ -13,10 +13,21 @@ vn1:
 vn1-300:
   seg_len_before: 4
   seg_len_after: 0
-  max_max_intensity_offset : 2
+  max_max_intensity_offset : 0
   selection_time: max_RV
   candidate_distance: 300.0
   analogue_distance: 300.0
+  analogue_function: mean
+  filter_mslp: null
+  filter_rv: 4
+
+vn2:
+  seg_len_before: 4
+  seg_len_after: 0
+  max_max_intensity_offset : 2
+  selection_time: max_RV
+  candidate_distance: 250.0
+  analogue_distance: 400.0
   analogue_function: max
   filter_mslp: null
   filter_rv: 4
@@ -24,8 +35,8 @@ vn1-300:
 
 # Testing settings for DRWs
 drws:
-  seg_len_before: 6
-  seg_len_after: 2
+  seg_len_before: 4
+  seg_len_after: 0
   max_max_intensity_offset : 2
   selection_time: max_RV
   candidate_distance: 300.0

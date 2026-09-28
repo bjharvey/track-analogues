@@ -10,14 +10,14 @@
 # fmt="JobID,JobName%50,Partition%10,Account,AllocCPUS,ReqMem,MaxRSS,MaxVMSize,State,Elapsed,ExitCode";
 # sacct --format=$fmt --starttime $(date +%Y-%m-%d --date="yesterday")
 
-# CASES=(Arwen GreatStorm Martin Ophelia Eunice NorthSea)
-# SETTINGS=vn1-300
+CASES=(Arwen GreatStorm Martin Ophelia Eunice NorthSea)
+SETTINGS=vn1
 
 # CASES=(Jul2021 Jul2012)
 # SETTINGS=cols
 
-CASES=(Christian Ciaran)
-SETTINGS=drws
+# CASES=(Christian Ciaran)
+# SETTINGS=drws
 
 # CASES=(Daniel Apollo Ianos Andrea Julia Vaia)
 # SETTINGS=med1
