@@ -453,11 +453,11 @@ def find_analogues(
     candidate_tracks = {}
     analogue_tracks = {}
     counts = {
+        'candidate_test1': 0,
+        'candidate_test2': 0,
         'segment_not_available': 0,
         'filter_mslp': 0,
         'filter_rv': 0,
-        'candidate_test1': 0,
-        'candidate_test2': 0,
         'analogue_test': 0,
     }
     for track_id, track in tracks.items():

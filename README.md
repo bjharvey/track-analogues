@@ -1,7 +1,8 @@
 # Track Analogues
 
 Code for identifying and analysing analogue cyclone tracks from the CANARI-LE.
-Based on MSc dissertation work by Farrell Morgan.
+
+Based on heavily on the MSc work of [Farrell Morgan](https://research.reading.ac.uk/meteorology/people/farrell-morgan/).
 
 ## Installation
 
