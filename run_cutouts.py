@@ -12,12 +12,15 @@ from track_utils import \
     _get_track_segment, \
     load_single_era5_track, \
     decode_kevins_date
-from run_analogues import \
-    reload_analogues, \
-    settings, \
+
+from run_analogues import reload_analogues
+
+from paths import \
+    data_dir, \
+    priority_dir, \
+    rm_file, \
     cases, \
-    output_dir, \
-    rm_file
+    settings
 
 
 def _get_le_info_from_track_filename(fn):
@@ -40,7 +43,6 @@ def load_track_le_variable(trackid, track, ftag, constraint=None, offsethrs=0):
           E.g. for ua use ftag='6hr_pt_m01s30i201'
     """
     print(f'LOAD_TRACK_LE_DATA: Loading {ftag} for track {trackid}')
-    priority_dir = '/gws/ssde/j25b/canari/shared/large-ensemble/priority'
     exp, suiteid, mem = _get_le_info_from_track_filename(trackid)
     track_times = [decode_kevins_date(value, track['time'].time_calendar.strip()) for value in track['time'].values]
     years_needed = np.unique([t.year for t in track_times])
@@ -181,8 +183,7 @@ def shift_cube_time_by_years(cube, n_years):
 
 def run_cutouts(case, label, setting):
     print('RUN_CUTOUTS:', case, label, setting)
-    data_dir = output_dir / 'data' / f'{case}'
-    savefn_cutouts = data_dir / f'{label}_{case}_cutouts_{setting}.nc'
+    savefn_cutouts = data_dir / f'{case}' / f'{label}_{case}_cutouts_{setting}.nc'
     rm_file(savefn_cutouts)
 
     target_track = load_single_era5_track(
@@ -249,8 +250,7 @@ def reload_cutouts(case, label, setting):
     relation to the time coordinates is lost.
     """
     # Load all available cutout files for this case/label/setting
-    data_dir = output_dir / 'data' / f'{case}'
-    savefn_cutouts = list(data_dir.glob(f'{label}_{case}_cutouts_{setting}.nc'))
+    savefn_cutouts = list((data_dir / f'{case}').glob(f'{label}_{case}_cutouts_{setting}.nc'))
     print(f'\nRELOAD_CUTOUTS({case}, {label}, {setting}): '
           f'Found {len(savefn_cutouts)} files')    
     cubes = iris.load(savefn_cutouts)

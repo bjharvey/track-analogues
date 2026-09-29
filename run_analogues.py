@@ -9,26 +9,12 @@ from track_utils import \
     save_tracks, \
     find_analogues
 
-output_dir = Path('/home/users/bjharvey/workspaces/medcyclones/track-analogues/')
-track_dir = Path('/gws/ssde/j25b/cmip6_track/CANARI')
-
-# Define cases and their ERA5 trackids
-with open('cases.yml') as f:
-    cases = yaml.safe_load(f)
-
-# Define choice of settings passed to find_analogues
-with open('analogue_settings.yml') as f:
-    settings = yaml.safe_load(f)
-
-
-def rm_file(filepath):
-    """
-    Remove a Pathlib file with check it is a file.
-    (e.g. instead of a directory)
-    """
-    if filepath.is_file():
-        print(f'RM_FILE: Removing existing file\n{filepath}')
-        filepath.unlink()
+from paths import \
+    data_dir, \
+    track_dir, \
+    rm_file, \
+    cases, \
+    settings
 
 
 def compute_analogues(case, label, setting, flist):
@@ -45,9 +31,8 @@ def compute_analogues(case, label, setting, flist):
     print('Settings: ', settings[setting])
 
     # Construct filenames and remove any existing analogue files
-    data_dir = output_dir / 'data' / f'{case}'
-    savefn_candidates = data_dir / f'{label}_{case}_candidates_{setting}.nc'
-    savefn_analogues = data_dir / f'{label}_{case}_analogues_{setting}.nc'
+    savefn_candidates = data_dir / f'{case}' / f'{label}_{case}_candidates_{setting}.nc'
+    savefn_analogues = data_dir / f'{case}' / f'{label}_{case}_analogues_{setting}.nc'
     rm_file(savefn_candidates)
     rm_file(savefn_analogues)
 
@@ -92,11 +77,10 @@ def reload_analogues(case, label, setting, get_candidates=False):
 
     Returns: {label: {track_id: track}}
     """
-    data_dir = output_dir / 'data' / f'{case}'
     if get_candidates:
-        savefn = data_dir.glob(f'{label}_{case}_candidates_{setting}.nc')
+        savefn = (data_dir / f'{case}').glob(f'{label}_{case}_candidates_{setting}.nc')
     else:
-        savefn = data_dir.glob(f'{label}_{case}_analogues_{setting}.nc')
+        savefn = (data_dir / f'{case}').glob(f'{label}_{case}_analogues_{setting}.nc')
     tracks = {fn.name.split('_')[0]: load_tracks(fn, verbose=False) for fn in savefn}
     nfiles = len(tracks)
     ntracks = sum([len(v) for k, v in tracks.items()])

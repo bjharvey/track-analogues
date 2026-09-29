@@ -21,8 +21,9 @@ Edit `run_analogues.py` to set `output_dir` to where you want to save to.
 
 ## Running
 
+1. 
 1. Use `locate_tracks.ipynb` to locate track ID of observed case in ERA5 and add to `cases.yml`
-2. Decide on the analogues settings (i.e. inputs to find_analogues) to use and add to `analogues_settings.yaml`
+2. Decide on the analogues settings (i.e. inputs to find_analogues) to use and add to `analogue_settings.yaml`
 3. Run `run_analogues_submit-wrapper.sh` in batch from a terminal to search for analogues
    - Must set CASES and SETTINGS variables
    - This calls routines from `run_analogues.py` to search for analogues in ERA5, HIST and SSP370

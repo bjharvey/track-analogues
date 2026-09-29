@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
+from paths import track_dir
+
 
 """
 Some general functions
@@ -385,10 +387,10 @@ def make_era5_track_filename(dt, trackvar='vor850'):
     else:
         yrtag = f'sep-apr{dt.year}{dt.year+1}'
     if 'vor' in trackvar:
-        fdir = f'/gws/ssde/j25b/cmip6_track/CANARI/ERA5/ST/ERA5_6hr_{trackvar}_{yrtag}_DET'
+        fdir = track_dir / f'ERA5/ST/ERA5_6hr_{trackvar}_{yrtag}_DET'
         return f'{fdir}/ff_trs_pos.addwind{trackvar.strip('vor')}_addwind10m_addmslp_addprecip.new.nc'
     elif trackvar == 'mslp':
-        fdir = f'/gws/ssde/j25b/cmip6_track/CANARI/ERA5/ST/ERA5_MSLP_{yrtag}_NH'
+        fdir = track_dir / f'ERA5/ST/ERA5_MSLP_{yrtag}_NH'
         return f'{fdir}/ff_trs_neg.addwind925_addwind10m_addmslp.new.nc'
 
 

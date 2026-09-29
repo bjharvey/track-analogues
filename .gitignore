@@ -15,3 +15,5 @@ __pycache__/
 *.swp
 
 git_reminders
+tests.ipynb
+track_utils-old_calendar_version.py
